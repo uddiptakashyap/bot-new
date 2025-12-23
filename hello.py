@@ -2,7 +2,7 @@ import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-BOT_TOKEN = "8399502212:AAHLpoBqpDVQ3V2jTSNZMfQeSYqVUDMN314"
+BOT_TOKEN = "8539427459:AAHOj7azhNOCFWfL3QHDCyQ5SGhiw5ij2mk"
 
 players = set()
 completed = set()
@@ -197,3 +197,4 @@ app.add_handler(CommandHandler("end_task", end_task))
 app.add_handler(CommandHandler("reset", reset))
 
 app.run_polling()
+
