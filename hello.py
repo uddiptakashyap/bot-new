@@ -21,29 +21,45 @@ def home():
 def run_web():
     web.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
 
+async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    member = await context.bot.get_chat_member(
+        update.effective_chat.id,
+        update.effective_user.id
+    )
+    return member.status in ["administrator", "creator"]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
+        "VSA Tournament Bot\n\n"
+        "Admin Commands:\n"
         "/add user1 user2\n"
         "/remove user1 user2\n"
         "/list\n"
         "/start_task\n"
-        "/done\n"
         "/pending\n"
         "/end_task\n"
-        "/reset"
+        "/reset\n\n"
+        "Player Command:\n"
+        "/done"
     )
 
 async def add_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
     for arg in context.args:
         players.add(arg.replace("@", ""))
     await update.message.reply_text("Players added")
 
 async def remove_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
     for arg in context.args:
         players.discard(arg.replace("@", ""))
     await update.message.reply_text("Players removed")
 
 async def list_players(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
     if players:
         await update.message.reply_text("\n".join(f"@{p}" for p in players))
     else:
@@ -51,6 +67,8 @@ async def list_players(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global task_active, completed, warning_task
+    if not await is_admin(update, context):
+        return
     if not players:
         await update.message.reply_text("No players added")
         return
@@ -68,45 +86,51 @@ async def start_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not task_active:
         return
-    user = update.effective_user
-    if user.username in players:
-        completed.add(user.username)
+    user = update.effective_user.username
+    if user in players:
+        completed.add(user)
         await update.message.reply_text("Marked done")
 
 async def pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
     if not task_active:
         await update.message.reply_text("No active tournament")
         return
     pending_players = [f"@{p}" for p in players if p not in completed]
     if pending_players:
         await update.message.reply_text(
-            "VSA pending for following players\n" + "\n".join(pending_players)
+            "VSA pending for following players\n" +
+            "\n".join(pending_players)
         )
     else:
         await update.message.reply_text("All players completed VSA")
 
 async def end_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global task_active, warning_task
+    if not await is_admin(update, context):
+        return
     if not task_active:
-        await update.message.reply_text("No active tournament")
         return
 
     pending_players = [f"@{p}" for p in players if p not in completed]
     if pending_players:
         await update.message.reply_text(
-            "Tournament ended\nPending players\n" + "\n".join(pending_players)
+            "Tournament ended\nPending players\n" +
+            "\n".join(pending_players)
         )
     else:
         await update.message.reply_text("Tournament ended\nAll players completed")
 
     task_active = False
     completed.clear()
-
     if warning_task:
         warning_task.cancel()
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global task_active, completed
+    if not await is_admin(update, context):
+        return
     task_active = False
     completed.clear()
     await update.message.reply_text("Reset done")
@@ -120,7 +144,8 @@ async def warning_scheduler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pending_players = [f"@{p}" for p in players if p not in completed]
         if pending_players:
             await update.message.reply_text(
-                f"Warning {i}/4\nVSA pending for\n" + "\n".join(pending_players)
+                f"Warning {i}/4\nVSA pending for\n" +
+                "\n".join(pending_players)
             )
 
 def main():
